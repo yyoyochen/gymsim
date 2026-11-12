@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>gymsim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Pixelify+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Traditional Chinese pixel font (Cubic 11, SIL OFL), only fetched when Chinese text is on screen */
+@font-face{font-family:"Cubic 11";src:url(https://cdn.jsdelivr.net/gh/ACh-K/Cubic-11@main/fonts/web/Cubic_11.woff2) format("woff2");unicode-range:U+2E80-2FFF,U+3000-303F,U+3100-312F,U+3400-9FFF,U+F900-FAFF,U+FE30-FE4F,U+FF00-FFEF;font-display:swap}
+#langBtn{min-width:0;padding:5px 8px;font-size:12px;color:var(--muted)}#langBtn span.on{color:var(--accent)}
+:root{--ink:#f2f1ea;--muted:#959bab;--bg:#10131c;--panel:#1c1f2a;--edge:#2f3340;--accent:#dfe03a;--hi:#2f68ab;--warn:#e08f5a;
+  --safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);--safe-l:env(safe-area-inset-left,0px);--safe-r:env(safe-area-inset-right,0px)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#0b1a33;color:var(--ink);font-family:"Pixelify Sans","Cubic 11",ui-monospace,monospace;-webkit-tap-highlight-color:transparent}
+#c{position:fixed;left:0;top:0;display:block;image-rendering:pixelated;cursor:grab;touch-action:none}
+#c.panning{cursor:grabbing}
+#plotbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+#plotbar.bar{position:fixed;left:0;bottom:0;height:var(--plotH,150px);padding:6px 10px 8px;background:rgba(16,19,28,.97);border-top:2px solid var(--edge);z-index:3}
+#plotbar.bar .plot{margin:0;display:flex;flex-direction:column;min-width:0;min-height:0;height:100%;overflow:hidden}
+#plotbar.bar .plot canvas{flex:1 1 0;height:0;min-height:0}
+#plotbar.bar .pt{white-space:nowrap;overflow:hidden;flex:none;gap:6px}
+.legend b{font-weight:inherit}.legend .ls{display:none}.legend.short .lf{display:none}.legend.short .ls{display:inline}
+#plotbar.bar .legend{flex:none;flex-wrap:nowrap;white-space:nowrap;overflow:hidden;height:14px;line-height:14px;gap:5px}
+.ttl{font-family:Silkscreen,"Cubic 11",monospace}
+#hud{position:fixed;top:calc(10px + var(--safe-t));left:calc(10px + var(--safe-l));pointer-events:none;text-shadow:2px 2px 0 rgba(0,0,0,.5)}
+#hud h1{font-family:Silkscreen,"Cubic 11",monospace;font-size:24px;margin:0;line-height:1;letter-spacing:1px}
+#hud .clk{font-family:Silkscreen,"Cubic 11",monospace;font-size:15px;color:var(--accent);margin-top:4px}
+#hud .sub{font-size:12px;color:#e8dcc0}
+#card{position:fixed;left:calc(10px + var(--safe-l));top:calc(78px + var(--safe-t));width:250px;background:rgba(16,19,28,.9);border:2px solid var(--edge);padding:8px 10px;font-size:12px;display:none;box-shadow:4px 4px 0 rgba(0,0,0,.35)}
+#card h3{font-family:Silkscreen,"Cubic 11",monospace;font-size:13px;margin:0 0 4px;display:flex;justify-content:space-between;gap:6px}
+#card h3 button{font-size:11px;padding:0 6px;min-height:20px}
+#card .now{color:var(--accent);margin:2px 0 5px}
+#card ol{margin:0;padding-left:18px;color:var(--muted)}
+#card li.cur{color:var(--ink)}
+#card li.done{text-decoration:line-through;opacity:.6}
+#toast{position:fixed;left:calc(10px + var(--safe-l));bottom:calc(58px + var(--plotOff,0px) + var(--safe-b));display:flex;flex-direction:column;gap:4px;pointer-events:none}
+#toast div{background:rgba(16,19,28,.92);border:2px solid var(--accent);color:var(--ink);font-family:Silkscreen,"Cubic 11",monospace;font-size:12px;padding:4px 8px;animation:tin .2s}
+@keyframes tin{from{transform:translateY(6px);opacity:0}}
+#viewbar{position:fixed;left:calc(10px + var(--safe-l));bottom:calc(10px + var(--plotOff,0px) + var(--safe-b));display:flex;gap:2px}
+button{font-family:"Pixelify Sans","Cubic 11",monospace;font-size:13px;color:var(--ink);background:#2f3340;border:0;padding:5px 9px;min-height:28px;cursor:pointer;box-shadow:inset 0 -2px 0 rgba(0,0,0,.35);border-radius:0}
+button:hover{background:#474c5c}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+/* NetLogo-style interface panel */
+#panel{position:fixed;top:0;right:0;bottom:0;background:rgba(16,19,28,.97);border-left:2px solid var(--edge);overflow-y:auto;padding:8px 10px 16px;scrollbar-width:thin}
+#panel .tabs{display:none}
+.grp{border:2px solid var(--edge);background:var(--panel);margin:0 0 8px;padding:6px 8px 8px;position:relative}
+.grp>h2{font-family:Silkscreen,"Cubic 11",monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:-2px 0 6px;display:flex;justify-content:space-between}
+.grp>h2 .pend{color:var(--warn);text-transform:none;letter-spacing:0;font-family:"Pixelify Sans","Cubic 11";font-size:11px;display:none}
+.grp.pending>h2 .pend{display:inline}
+.row{display:flex;gap:4px;margin-bottom:5px;align-items:center}
+.row>*{flex:1}
+.btn-setup{background:#474c5c}
+.btn-setup.need{background:var(--warn);color:#10131c}
+.btn-go.on{background:var(--accent);color:#10131c}
+.w{margin:0 0 6px}
+.w .lab{display:flex;justify-content:space-between;font-size:12px;margin-bottom:1px}
+.w .lab b{font-family:Silkscreen,"Cubic 11",monospace;font-weight:400;font-size:11px;color:var(--accent)}
+.w .lab .pd{color:var(--warn);font-size:10px;margin-left:4px;display:none}
+.w.pd .lab .pd{display:inline}
+input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:16px;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:6px;background:#474c5c}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:16px;background:var(--hi);margin-top:-5px;border:0}
+input[type=range]::-moz-range-track{height:6px;background:#474c5c}
+input[type=range]::-moz-range-thumb{width:12px;height:16px;background:var(--hi);border:0;border-radius:0}
+@media (pointer:coarse){input[type=range]{height:34px;touch-action:pan-y}input[type=range]::-webkit-slider-thumb{width:22px;height:26px;margin-top:-10px}input[type=range]::-moz-range-thumb{width:22px;height:26px}}
+select,input[type=number]{width:100%;font-family:"Pixelify Sans","Cubic 11",monospace;font-size:13px;background:#2f3340;color:var(--ink);border:0;padding:4px 6px;border-radius:0}
+.sw{display:flex;justify-content:space-between;align-items:center;font-size:12px}
+.sw button{min-width:52px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.seg button{padding:6px 0}
+.seg button.on{background:var(--hi);color:#fff}
+.sw button.on{background:var(--hi)}
+.mon{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.mon div{background:#10131c;border:1px solid var(--edge);padding:3px 5px}
+.mon span{display:block;font-size:10px;color:var(--muted);line-height:1.1}
+.mon b{font-family:Silkscreen,"Cubic 11",monospace;font-weight:400;font-size:14px}
+.plot{margin-bottom:8px}
+.plot .pt{font-size:11px;color:var(--muted);display:flex;justify-content:space-between}
+.plot canvas{width:100%;height:96px;display:block;background:#10131c;border:1px solid var(--edge);image-rendering:pixelated}
+.legend{display:flex;flex-wrap:wrap;gap:6px;font-size:10px;color:var(--muted);margin-top:2px}
+.legend i{display:inline-block;width:8px;height:8px;margin-right:3px;vertical-align:middle}
+.note{font-size:11px;color:var(--muted);margin:2px 0 0}
+#sheetHandle{display:none}
+#fallback{position:fixed;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:24px}
+@media (max-width:859px){
+  #panel{top:auto;left:0;right:0;height:52vh;border-left:0;border-top:2px solid var(--edge);padding:0 8px calc(10px + var(--safe-b));transition:transform .25s}
+  #panel.closed{transform:translateY(calc(52vh - 88px))}
+  #sheetHandle{display:flex;justify-content:center;padding:4px 0 2px;position:sticky;top:0;background:var(--bg);z-index:2}
+  #sheetHandle i{width:44px;height:5px;background:#474c5c;display:block}
+  #panel .tabs{display:flex;gap:2px;position:sticky;top:11px;background:var(--bg);z-index:2;padding-bottom:6px}
+  #panel .tabs button{flex:1;font-size:12px;padding:5px 2px}
+  #panel .tabs button.on{background:var(--hi)}
+  .grp[data-tab]{display:none}
+  .grp[data-tab].show{display:block}
+  #monGrp{display:block!important}
+  .mon{grid-template-columns:repeat(6,1fr)}
+  .mon b{font-size:12px}
+  .mon span{font-size:9px}
+  #hud h1{font-size:18px}
+  #card{width:210px}
+  #toast{bottom:auto;top:calc(80px + var(--safe-t))}
+  #viewbar{bottom:auto;top:calc(10px + var(--safe-t));left:auto;right:calc(10px + var(--safe-r))}
+  #plotbar{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Pixel-art gym diorama"></canvas>
+<div id="hud"><h1>gymsim</h1><div class="clk" id="hudClock">05:45</div><div class="sub" id="hudSub">Drag to pan · tap someone to follow them</div></div>
+<div id="card"></div>
+<div id="toast"></div>
+<div id="viewbar"><button id="rotL" aria-label="Rotate left">⟲</button><button id="rotR" aria-label="Rotate right">⟳</button><button id="zoomOut" aria-label="Zoom out">−</button><button id="zoomIn" aria-label="Zoom in">+</button><button id="langBtn" aria-label="Language / 語言"><span data-l="en">En</span> / <span data-l="zh">中文</span></button></div>
+<aside id="panel"></aside>
+<div id="fallback">This diorama needs WebGL, which isn't available in this browser.</div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+/*MAIN*/
+</script>
+</body>
+</html>
