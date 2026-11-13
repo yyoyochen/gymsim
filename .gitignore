@@ -2,3 +2,10 @@ __pycache__/
 *.pyc
 .DS_Store
 node_modules/
+
+# local-only references (third-party photos, not for the repo)
+reference/
+reference2/
+.superpowers/
+gymcube-finance/
+STATUS.md
