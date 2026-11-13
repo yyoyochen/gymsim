@@ -288,6 +288,10 @@ const _lv = new V3(); function _lookOf(s) { return _lv.set(s.x, 1.2, s.z); }
 window.addEventListener('resize', () => { onResize(); positionUI(); placePlots(); });
 function positionUI() { panel.style.width = panelW ? panelW + 'px' : ''; document.getElementById('viewbar').style.left = ''; }
 onResize(); positionUI();
+// sound toggle sits with the language toggle (the audio can only start after a click, so it begins muted)
+const sndBtn = document.getElementById('sndBtn');
+function refreshSnd() { sndBtn.classList.toggle('on', soundOn); sndBtn.setAttribute('aria-pressed', soundOn); sndBtn.title = tr(soundOn ? 'Sound on' : 'Sound off'); sndBtn.setAttribute('aria-label', sndBtn.title); }
+sndBtn.addEventListener('click', () => { soundOn = !soundOn; if (soundOn) ensureAudio(); refreshSnd(); });
 buildPanel(); placePlots(); setLang(LANG);
 document.getElementById('langBtn').addEventListener('click', () => setLang(zh() ? 'en' : 'zh'));
 setupRun(); refreshPending();

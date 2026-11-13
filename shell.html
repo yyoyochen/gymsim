@@ -11,6 +11,7 @@
 /* Traditional Chinese pixel font (Cubic 11, SIL OFL), only fetched when Chinese text is on screen */
 @font-face{font-family:"Cubic 11";src:url(https://cdn.jsdelivr.net/gh/ACh-K/Cubic-11@main/fonts/web/Cubic_11.woff2) format("woff2");unicode-range:U+2E80-2FFF,U+3000-303F,U+3100-312F,U+3400-9FFF,U+F900-FAFF,U+FE30-FE4F,U+FF00-FFEF;font-display:swap}
 #langBtn{min-width:0;padding:5px 8px;font-size:12px;color:var(--muted)}#langBtn span.on{color:var(--accent)}
+#sndBtn{color:var(--muted);text-decoration:line-through;text-decoration-thickness:2px}#sndBtn.on{color:var(--accent);text-decoration:none}
 :root{--ink:#f2f1ea;--muted:#959bab;--bg:#10131c;--panel:#1c1f2a;--edge:#2f3340;--accent:#dfe03a;--hi:#2f68ab;--warn:#e08f5a;
   --safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);--safe-l:env(safe-area-inset-left,0px);--safe-r:env(safe-area-inset-right,0px)}
 *{box-sizing:border-box}
@@ -117,7 +118,7 @@ select,input[type=number]{width:100%;font-family:"Pixelify Sans","Cubic 11",mono
 <div id="hud"><h1>gymsim</h1><div class="clk" id="hudClock">05:45</div><div class="sub" id="hudSub">Drag to pan · tap someone to follow them</div></div>
 <div id="card"></div>
 <div id="toast"></div>
-<div id="viewbar"><button id="rotL" aria-label="Rotate left">⟲</button><button id="rotR" aria-label="Rotate right">⟳</button><button id="zoomOut" aria-label="Zoom out">−</button><button id="zoomIn" aria-label="Zoom in">+</button><button id="langBtn" aria-label="Language / 語言"><span data-l="en">En</span> / <span data-l="zh">中文</span></button></div>
+<div id="viewbar"><button id="rotL" aria-label="Rotate left">⟲</button><button id="rotR" aria-label="Rotate right">⟳</button><button id="zoomOut" aria-label="Zoom out">−</button><button id="zoomIn" aria-label="Zoom in">+</button><button id="langBtn" aria-label="Language / 語言"><span data-l="en">En</span> / <span data-l="zh">中文</span></button><button id="sndBtn" aria-label="Sound off" aria-pressed="false" title="Sound off">♪</button></div>
 <aside id="panel"></aside>
 <div id="fallback">This diorama needs WebGL, which isn't available in this browser.</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>

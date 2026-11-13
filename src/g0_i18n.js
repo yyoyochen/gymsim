@@ -72,6 +72,6 @@ function setLang(l) {
   if (typeof buildPanel === 'function' && panel.childElementCount) {
     const open = !panel.classList.contains('closed'), tab = panel.querySelector('.tabs button.on'), tk = tab ? tab.dataset.t : 'Run', st = panel.scrollTop;
     buildPanel(); placePlots(); refreshGo(); refreshPending(); showTab(tk); panel.classList.toggle('closed', !open); panel.scrollTop = st;
-    W.snd.textContent = tr(soundOn ? 'Sound on' : 'Sound off');
+    refreshSnd();
   }
 }

@@ -120,7 +120,7 @@ function buildPanel() {
   run.appendChild(r2); W.seed = r2.querySelector('#seed'); W.seed.value = S.seed;
   W.seed.addEventListener('change', () => { S.seed = Math.max(1, Math.floor(+W.seed.value || 1)); W.seed.value = S.seed; refreshPending(); });
   r2.querySelector('#dice').addEventListener('click', () => { S.seed = Math.floor(Math.random() * 1e6) + 1; W.seed.value = S.seed; refreshPending(); });
-  const r3 = el('div', { class: 'row' }); W.snd = el('button', {}, tr('Sound off')); W.copy = el('button', {}, tr('Copy results')); r3.append(W.snd, W.copy); run.appendChild(r3);
+  const r3 = el('div', { class: 'row' }); W.copy = el('button', {}, tr('Copy results')); r3.append(W.copy); run.appendChild(r3);
   run.appendChild(el('p', { class: 'note', id: 'runNote' }, ''));
   const mg = group('Monitors', null, 'monGrp'); mg.querySelector('.pend').remove();
   const mon = el('div', { class: 'mon' });
@@ -168,7 +168,6 @@ function buildPanel() {
   W.setup.addEventListener('click', () => { goOn = false; setupRun(); refreshGo(); refreshPending(); clearFollow(); showToast(tx(`Setup · seed ${S.seed}`, `設定 · 種子 ${S.seed}`)); });
   W.go.addEventListener('click', () => { if (A && A.done) { setupRun(); refreshPending(); } goOn = !goOn; refreshGo(); });
   W.step.addEventListener('click', () => { if (!A || A.done) return; for (let i = 0; i < 60 / STEP; i++) simStep(); });
-  W.snd.addEventListener('click', () => { soundOn = !soundOn; if (soundOn) ensureAudio(); W.snd.textContent = tr(soundOn ? 'Sound on' : 'Sound off'); });
   W.copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(resultsText()); showToast(tr('Results copied')); } catch (e) { showToast(tr('Copy was blocked here')); } });
 }
 function showTab(t) { panel.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t)); panel.querySelectorAll('.grp[data-tab]').forEach(g => g.classList.toggle('show', g.dataset.tab === t)); }
