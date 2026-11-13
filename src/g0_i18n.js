@@ -9,9 +9,11 @@ const ZH = {
   'applies on Setup': '按「設定」後生效', '· Setup': '· 設定', 'On': '開', 'Off': '關',
   'Behaviour sliders apply immediately.': '行為類滑桿會立即生效。',
   'Some settings change the building or the day: press Setup to apply them.': '部分設定會改變場館或當日安排：按「設定」套用。',
+  // accessibility labels
+  'Pixel-art gym diorama': '像素風健身房場景', 'Rotate left': '向左旋轉', 'Rotate right': '向右旋轉', 'Zoom out': '縮小', 'Zoom in': '放大',
   // sliders and choosers
   'Speed (gym seconds per real second)': '速度（每實際一秒經過的館內秒數）',
-  'Arrival curve': '到場曲線', 'Weekday': '平日', 'Weekend': '週末',
+  'Arrival curve': '到場曲線', 'Weekday': '平日', 'Weekend': '週末', 'January rush': '新年人潮', 'Holiday week': '連假週',
   'Members per day': '每日會員數', 'Mean visit length': '平均停留時間',
   'Setting': '環境', 'Urban': '都市', 'Suburban': '郊區', 'Rural': '鄉村',
   'Weather': '天氣', 'Clear': '晴天', 'Rain': '雨天', 'Heatwave': '熱浪',
@@ -65,6 +67,7 @@ function setLang(l) {
   document.documentElement.lang = zh() ? 'zh-Hant-TW' : 'en';
   const b = document.getElementById('langBtn'); if (b) b.querySelectorAll('span[data-l]').forEach(s => s.classList.toggle('on', s.dataset.l === l));
   const sub = document.getElementById('hudSub'); if (sub) sub.textContent = tr(matchMedia('(pointer: coarse)').matches ? 'Pinch to zoom · two fingers to pan · tap someone to follow' : 'Drag to pan · tap someone to follow them');
+  [['c', 'Pixel-art gym diorama'], ['rotL', 'Rotate left'], ['rotR', 'Rotate right'], ['zoomOut', 'Zoom out'], ['zoomIn', 'Zoom in']].forEach(([id, k]) => { const e = document.getElementById(id); if (e) e.setAttribute('aria-label', tr(k)); });
   const fb = document.getElementById('fallback'); if (fb) fb.textContent = tr('This diorama needs WebGL, which isn\'t available in this browser.');
   if (typeof buildPanel === 'function' && panel.childElementCount) {
     const open = !panel.classList.contains('closed'), tab = panel.querySelector('.tabs button.on'), tk = tab ? tab.dataset.t : 'Run', st = panel.scrollTop;

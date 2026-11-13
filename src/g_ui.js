@@ -179,6 +179,15 @@ function resultsText() {
   if (!A) return '';
   const c = A.cfg; let peak = 0, peakM = 0; A.occ.forEach((v, m) => { if (v > peak) { peak = v; peakM = m; } });
   const avg = A.waits.length ? A.waits.reduce((s, v) => s + v, 0) / A.waits.length : 0, mx = A.waits.length ? Math.max(...A.waits) : 0;
+  const pr = A.prs.length ? ': ' + A.prs.map(p => `${trName(p.name)} ${tr(p.lift)} ${p.kg} kg`).join('; ') : '';
+  if (zh()) return [`gymsim 執行結果 · 種子 ${c.seed} · ${tr(c.curve)} · ${tr(c.weather)}`,
+    `會員 ${c.members} 人，停留 ${c.visit} 分，組成 健力${c.mix.power}/舉重${c.mix.oly}/健美${c.mix.body}/新手${c.mix.beginner}/教練帶學員${c.mix.coach} %`,
+    `健力架 ${c.racks}，舉重台 ${c.plats}，訓練椅 ${c.benches}，清潔人員 ${S.cleaners}，人數上限 ${S.cap}，健力架彎舉 ${S.curls ? '開' : '關'}`,
+    `耐心 ${S.patience} 分，輪流使用 ${S.workIn} %，組間休息 ${S.rest} 分，槓片歸位 ${S.rerack} %`,
+    `時鐘 ${hhmm(A.t)}${A.done ? '（今日結束）' : ''} · 到訪 ${A.visits} 人次`,
+    `尖峰人數 ${peak}（${hhmm(T_OPEN + peakM * 60)}）`,
+    `平均等待 ${avg.toFixed(1)} 分 · 最長等待 ${mx.toFixed(1)} 分 · 最長隊伍 ${A.longestQ}`,
+    `PR ${A.prs.length}${pr}`].join('\n');
   return [`gymsim run · seed ${c.seed} · ${c.curve} · ${c.weather}`,
     `Members ${c.members}, visit ${c.visit} min, mix P${c.mix.power}/O${c.mix.oly}/B${c.mix.body}/N${c.mix.beginner}/C${c.mix.coach} %`,
     `Racks ${c.racks}, platforms ${c.plats}, benches ${c.benches}, cleaners ${S.cleaners}, cap ${S.cap}, curls in racks ${S.curls ? 'on' : 'off'}`,
@@ -186,7 +195,7 @@ function resultsText() {
     `Clock ${hhmm(A.t)}${A.done ? ' (day complete)' : ''} · visits ${A.visits}`,
     `Peak occupancy ${peak} at ${hhmm(T_OPEN + peakM * 60)}`,
     `Average wait ${avg.toFixed(1)} min · longest wait ${mx.toFixed(1)} min · longest queue ${A.longestQ}`,
-    `PRs ${A.prs.length}${A.prs.length ? ': ' + A.prs.map(p => `${p.name} ${p.lift} ${p.kg} kg`).join('; ') : ''}`].join('\n');
+    `PRs ${A.prs.length}${pr}`].join('\n');
 }
 // ---------------------------------------------------------------- monitors + plots
 function setText(id, v) { const e = document.getElementById(id); if (e && e.textContent !== String(v)) e.textContent = v; }
