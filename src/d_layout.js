@@ -152,7 +152,7 @@ function buildLayout(cfg) {
   items.forEach((type, k) => {
     const row = Math.floor(k / perRow), idx = k % perRow;
     const px = x0 + pitch * (idx + 0.5), pz2 = row === 0 ? -7.6 : -4.25;
-    box(2.4, 0.06, 2.4, '#1c1f2a', px, 0, pz2, 0, B); box(1.2, 0.065, 2.4, type === 'rack' ? '#c99a5e' : '#a9733f', px, 0, pz2, 0, B);
+    box(2.4, 0.06, 2.4, '#1c1f2a', px, 0, pz2, 0, B); box(1.2, 0.065, 2.38, type === 'rack' ? '#c99a5e' : '#a9733f', px, 0, pz2, 0, B);
     if (type === 'rack') {
       for (const dx of [-0.6, 0.6]) for (const dz of [-1.0, 0.2]) {
         box(0.076, 2.3, 0.076, '#1c1f2a', px + dx, 0.06, pz2 + dz, 0, B); obst(px + dx - 0.1, pz2 + dz - 0.1, px + dx + 0.1, pz2 + dz + 0.1);
@@ -179,7 +179,7 @@ function buildLayout(cfg) {
       });
     } else {
       box(1.6, 0.9, 0.35, '#565c6c', px, 0, pz2 - 1.55, 0, B);
-      [[20, -0.45], [15, -0.15], [10, 0.15], [5, 0.45]].forEach(([w, dx]) => { for (let n = 0; n < 3; n++) disc(0.225, 0.06, PLATE[w][0], px + dx, 0.95 + 0.0, pz2 - 1.55 + (n - 1) * 0.08, 'z', EB); });
+      [[20, -0.45], [15, -0.15], [10, 0.15], [5, 0.45]].forEach(([w, dx], ix) => { for (let n = 0; n < 3; n++) disc(0.225, 0.06, PLATE[w][0], px + dx, 0.95 + 0.0, pz2 - 1.55 + (n - 1) * 0.08 + (ix % 2) * 0.04, 'z', EB); });   // alternate stacks 4 cm apart in z so neighbouring plates never share a face plane
       obst(px - 0.8, pz2 - 1.75, px + 0.8, pz2 - 1.35);
       addStation('olyplat', 'platforms', px, pz2 + 0.05, Z_FRONT, { bar0: { x: px, z: pz2 + 0.3 }, rest: { x: px - 0.9, z: pz2 + 1.55 }, waitBase: { x: px + 0.75, z: pz2 + 1.8 }, waitDir: { x: 0, z: 0.55 }, load: 20 });
     }

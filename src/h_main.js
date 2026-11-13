@@ -238,7 +238,30 @@ function tick(raw, now) {
     const gt = A ? A.t : 12 * 3600, h = (gt / 3600) % 12, m = (gt / 60) % 60;
     hourHand.rotation.z = -h / 12 * Math.PI * 2; minHand.rotation.z = -m / 60 * Math.PI * 2;
   }
+  updatePays();
   render();
+}
+// ================================================================ "+NT$" pops over members as they pay on the way out
+const PAYS = [], _pp = new V3();
+function updatePays() {
+  if (A && A.payQ && A.payQ.length) {
+    const q = A.payQ.splice(0);
+    for (const p of q.slice(-6)) {   // fast-forward can bill dozens at once; show only the latest few
+      const el = document.createElement('div'); el.className = 'pay';
+      el.innerHTML = `+NT$${p.fee}<small>${p.min} min</small>`;
+      document.body.appendChild(el);
+      PAYS.push({ el, a: p.a, born: performance.now(), x: p.a.pos.x, z: p.a.pos.z });
+    }
+  }
+  const r = canvas.getBoundingClientRect(), now = performance.now();
+  for (let i = PAYS.length - 1; i >= 0; i--) {
+    const p = PAYS[i], age = (now - p.born) / 1600;
+    if (age >= 1) { p.el.remove(); PAYS.splice(i, 1); continue; }
+    if (p.a.visible) { p.x = p.a.pos.x; p.z = p.a.pos.z; }
+    _pp.set(p.x, 2.3, p.z).project(cam);
+    p.el.style.transform = `translate(${r.left + (_pp.x + 1) / 2 * r.width}px, ${r.top + (1 - _pp.y) / 2 * r.height - age * 34}px) translate(-50%, -100%)`;
+    p.el.style.opacity = age < 0.7 ? 1 : (1 - age) / 0.3;
+  }
 }
 const _lv = new V3(); function _lookOf(s) { return _lv.set(s.x, 1.2, s.z); }
 // ================================================================ boot

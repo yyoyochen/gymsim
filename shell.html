@@ -36,6 +36,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:#0b1a33;color:var(--in
 #card ol{margin:0;padding-left:18px;color:var(--muted)}
 #card li.cur{color:var(--ink)}
 #card li.done{text-decoration:line-through;opacity:.6}
+.pay{position:fixed;left:0;top:0;pointer-events:none;z-index:5;background:#2a9d6f;border:2px solid #10131c;color:#fff;font-family:Silkscreen,"Cubic 11",monospace;font-size:12px;line-height:1.1;padding:2px 6px;text-align:center;box-shadow:2px 2px 0 rgba(0,0,0,.4);white-space:nowrap}
+.pay small{display:block;font-size:9px;opacity:.85}
 #toast{position:fixed;left:calc(10px + var(--safe-l));bottom:calc(58px + var(--plotOff,0px) + var(--safe-b));display:flex;flex-direction:column;gap:4px;pointer-events:none}
 #toast div{background:rgba(16,19,28,.92);border:2px solid var(--accent);color:var(--ink);font-family:Silkscreen,"Cubic 11",monospace;font-size:12px;padding:4px 8px;animation:tin .2s}
 @keyframes tin{from{transform:translateY(6px);opacity:0}}

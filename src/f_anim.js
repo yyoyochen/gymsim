@@ -462,6 +462,14 @@ function drawStreetLife(dtR) {
     drawBody(r.look, P, r.vis);
   }
 }
+// sideways shift (m, away from the centre line) a back-street car needs near a median: 1.15 m while alongside, easing out over 5.4 m
+function medianShift(x) {
+  let s = 0;
+  for (const px of MEDIAN_X) { const d = Math.abs(x - px); s = Math.max(s, d < 5.6 ? 1.15 : d < 11 ? 0.575 * (1 + Math.cos(Math.PI * (d - 5.6) / 5.4)) : 0); }
+  return s;
+}
+// back-street lane centre for a vehicle: in Rural the back road is a 6 m country road, so cars sit at 1.25 m and every scooter at 2.5 m
+function laneZ(f) { return f.cl === -29 && curSetting === 'Rural' ? f.cl + f.dir * (Math.abs(f.z0 - f.cl) < 2 ? 1.25 : 2.5) : f.z0; }
 function drawVehicles(real = 0) {
   if (!A) return;
   OBS.length = 0;
@@ -475,23 +483,26 @@ function drawVehicles(real = 0) {
   for (const f of FLOW) if (f.kind === 'car') {
     if (thin && f.n % thin === 0) continue;
     f.x += f.dir * f.v * dtR; wrap(f);
-    drawCar(f.x, f.z0, f.dir > 0 ? Math.PI / 2 : -Math.PI / 2, f.col, f.ghost); OBS.push(f.x, f.z0, 2.25, 0.88, f.dir, f.v);
+    // back street: swing out round the raised medians (cosine ramp in and out), heading follows the path
+    const z0 = laneZ(f), zAt = (x) => f.cl === -29 && curSetting === 'Urban' ? z0 + f.dir * medianShift(x) : z0, z = zAt(f.x), slope = zAt(f.x + 0.5) - zAt(f.x - 0.5);
+    drawCar(f.x, z, Math.atan2(f.dir, slope * f.dir), f.col, f.ghost); OBS.push(f.x, z, 2.25, 0.88, f.dir, f.v);
   }
+  if (curSetting === 'Urban') for (const px of MEDIAN_X) OBS.push(px, -29, 3.2, 1.4, 0, 0);   // the medians themselves, so scooters steer clear
   // scooters: publish where everyone is, then each one looks ahead
   const base = OBS.length;
-  for (const f of FLOW) if (f.kind === 'scoot') { f.ob = OBS.length; OBS.push(thin && f.n % thin === 0 ? 1e6 : f.x, f.z0 + f.sw, 0.95, 0.38, f.dir, f.v); }
+  for (const f of FLOW) if (f.kind === 'scoot') { f.ob = OBS.length; OBS.push(thin && f.n % thin === 0 ? 1e6 : f.x, laneZ(f) + f.sw, 0.95, 0.38, f.dir, f.v); }
   for (const f of FLOW) if (f.kind === 'scoot') {
     if (thin && f.n % thin === 0) continue;
     const keep = OBS[f.ob]; OBS[f.ob] = 1e6;                       // ignore yourself
-    const half = f.cl === ROAD_Z + 1.8 ? 3.6 : 4.5, lo = f.dir > 0 ? f.cl + 0.3 : f.cl - half + 0.4, hi = f.dir > 0 ? f.cl + half - 0.4 : f.cl - 0.3;
-    const zc = f.z0 + f.sw; let want = f.z0, vmax = f.v0;
+    const half = f.cl === ROAD_Z + 1.8 ? 3.6 : curSetting === 'Rural' ? 3.0 : 4.5, lo = f.dir > 0 ? f.cl + 0.3 : f.cl - half + 0.4, hi = f.dir > 0 ? f.cl + half - 0.4 : f.cl - 0.3;
+    const lz = laneZ(f), zc = lz + f.sw; let want = lz, vmax = f.v0;
     for (let o = 0; o < OBS.length; o += 6) {
       const ahead = (OBS[o] - f.x) * f.dir, hl = OBS[o + 2];
       if (ahead < -hl - 1.4 || ahead > hl + 10) continue;
       const oz = OBS[o + 1], clear = OBS[o + 3] + 0.38 + 0.2;
       if (Math.abs(oz - zc) >= clear && Math.abs(oz - want) >= clear) continue;
       const a = oz - clear, b = oz + clear, ca = a >= lo, cb = b <= hi;
-      want = ca && cb ? (Math.abs(a - f.z0) <= Math.abs(b - f.z0) ? a : b) : ca ? a : cb ? b : want;
+      want = ca && cb ? (Math.abs(a - lz) <= Math.abs(b - lz) ? a : b) : ca ? a : cb ? b : want;
     }
     // still something in our path right in front? match its speed (or stop) until there is room to pass
     for (let o = 0; o < OBS.length; o += 6) {
@@ -504,7 +515,7 @@ function drawVehicles(real = 0) {
     f.v += clamp(vmax - f.v, -12 * dtR, 4 * dtR);
     const d = want - zc, st = 3.6 * dtR; f.sw += Math.abs(d) <= st ? d : Math.sign(d) * st;
     f.x += f.dir * Math.max(0, f.v) * dtR; wrap(f);
-    const z = f.z0 + f.sw; OBS[f.ob] = keep; OBS[f.ob] = f.x; OBS[f.ob + 1] = z; OBS[f.ob + 5] = f.v;
+    const z = lz + f.sw; OBS[f.ob] = keep; OBS[f.ob] = f.x; OBS[f.ob + 1] = z; OBS[f.ob + 5] = f.v;
     const lean = clamp(-d * 0.35, -0.3, 0.3);
     drawScooter(f.x, z, (f.dir > 0 ? 0 : Math.PI) + lean * f.dir, f.col, f.rider, f.helmet, f.ghost);
   }

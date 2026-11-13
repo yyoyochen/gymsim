@@ -84,6 +84,20 @@ const HIST = [];
 const DOOR_OUT = { x: DOOR.x, z: HZ + 0.9 }, DOOR_IN = { x: DOOR.x, z: HZ - 0.9 }, DESK_PT = { x: 12.55, z: 7.35 }, CHG_DOOR = { x: CHG.x0 - 0.5, z: CHG.door };
 const T_OPEN = 7 * 3600, T_CLOSE = 24 * 3600, T_START = 6.75 * 3600;
 const hhmm = (t) => { const h = Math.floor(t / 3600) % 24, m = Math.floor(t % 3600 / 60); return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'); };
+// ================================================================ money (Taipei per-minute defaults, NT$)
+const PRICE = { off: 1.2, peak: 1.5, peakFrom: 18, peakTo: 22, cap: 180 };   // peak is weekday evenings only
+function visitFee(t0, t1) {
+  const peakDay = S.curve === 'Weekday' || S.curve === 'January rush';
+  let fee = 0;
+  for (let t = t0; t < t1; t += 60) { const h = Math.floor(t / 3600) % 24, peak = peakDay && h >= PRICE.peakFrom && h < PRICE.peakTo; fee += (peak ? PRICE.peak : PRICE.off) * Math.min(60, t1 - t) / 60; }
+  return Math.min(PRICE.cap, Math.round(fee));
+}
+function chargeOut(a) {   // billed once, as the member walks out past the desk
+  if (a.paid || !a.tDoor) return;
+  a.paid = true; a.fee = visitFee(a.tDoor, A.t);
+  A.rev = (A.rev || 0) + a.fee;
+  (A.payQ || (A.payQ = [])).push({ a, fee: a.fee, min: Math.round((A.t - a.tDoor) / 60) });
+}
 function round25(x) { return Math.max(20, Math.round(x / 2.5) * 2.5); }
 function makeLook(rng, female, kind) {
   const look = { shirt: rng.pick(SHIRTS), shorts: rng.pick(['#1c1f2a', '#474c5c', '#1e4a85', '#2f3340', '#5c1418']), skin: rng.pick(SKINS), hair: rng.pick(HAIRS), shoe: rng.pick(['#f2f1ea', '#1c1f2a', '#d6403a', '#2f68ab']), scale: female ? rng.range(0.9, 0.98) : rng.range(0.97, 1.06) };
@@ -300,9 +314,9 @@ function updateMember(a, dt) {
     case 'lockerOut': a.act = { k: 'idle', arms: 'locker' }; if (t - a.t0 > a.lockDur || t > T_CLOSE + 10 * 60) { a.state = 'toExit'; go(a, DOOR_OUT.x, DOOR_OUT.z); } return;
     case 'toExit':
       a.act = { k: 'walk' };
-      if (!a.counted && a.pos.z > HZ - 0.3) { a.counted = true; A.inside = Math.max(0, A.inside - 1); }
+      if (!a.counted && a.pos.z > HZ - 0.3) { a.counted = true; A.inside = Math.max(0, A.inside - 1); chargeOut(a); }
       if (!moving(a)) {
-        if (!a.counted) { a.counted = true; A.inside = Math.max(0, A.inside - 1); }
+        if (!a.counted) { a.counted = true; A.inside = Math.max(0, A.inside - 1); chargeOut(a); }
         a.state = 'leaveSite';
         if (a.mode === 'scooter' && a.scootI != null) go(a, SCOOT[a.scootI].x + 0.5, SCOOT[a.scootI].z);
         else if (a.mode === 'bus') go(a, BUS_STOP.x - 1 + a.rng() * 2, BUS_STOP.z + 0.1);
