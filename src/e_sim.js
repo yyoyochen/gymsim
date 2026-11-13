@@ -97,7 +97,30 @@ function chargeOut(a) {   // billed once, as the member walks out past the desk
   a.paid = true; a.fee = visitFee(a.tDoor, A.t);
   A.rev = (A.rev || 0) + a.fee;
   (A.payQ || (A.payQ = [])).push({ a, fee: a.fee, min: Math.round((A.t - a.tDoor) / 60) });
+  if (a.coach && a.coach.outside) {   // outside coach: floor rental per 90 min started, plus the coach's own per-minute entry
+    const min = (A.t - a.tDoor) / 60, rent = RENT_90[0] * Math.max(1, Math.ceil(min / 90)), entry = visitFee(a.tDoor, A.t);
+    A.rev += rent + entry; A.rentRev = (A.rentRev || 0) + rent;
+    A.payQ.push({ a, fee: entry, min: Math.round(min) }, { a, fee: rent, rent: true });
+  }
+  // a member training with an in-house coach buys the next package as the last one runs out (chance 1/package size per session)
+  else if (a.coach && a.rng() < 1 / 16) {
+    const pk = PT_PACKS[a.rng() < 0.4 ? 0 : a.rng() < 0.67 ? 1 : 2];
+    const inst = pk.parts.length > 1 && a.rng() < 0.5;   // half spread the bigger packs over instalments
+    const paid = inst ? pk.parts[0] : pk.price;
+    A.rev += paid; A.ptRev = (A.ptRev || 0) + paid; A.ptOwed = (A.ptOwed || 0) + pk.n;   // sessions the gym now owes
+    if (inst) A.ptDue = (A.ptDue || 0) + pk.price - paid;                                 // later instalments
+    A.payQ.push({ a, fee: paid, pt: { n: pk.n, inst: inst ? `1/${pk.parts.length}` : '' } });
+  }
 }
+// outside (freelance) coaches renting the floor: share of coached sessions, and rental per 90 min by headcount 1-2,3,4,5-6,7,8,9,10 (LINE, 2026-11)
+const OUTSIDE_SHARE = 0.4;
+const RENT_90 = [250, 350, 450, 550, 650, 750, 850, 950];
+// PT packages, cash or transfer (gym's LINE price list, 2026-11): 16 and 24 can be paid in instalments
+const PT_PACKS = [
+  { n: 8, price: 13520, parts: [13520] },
+  { n: 16, price: 25440, parts: [13520, 11920] },
+  { n: 24, price: 35760, parts: [13520, 11920, 10320] }
+];
 function round25(x) { return Math.max(20, Math.round(x / 2.5) * 2.5); }
 function makeLook(rng, female, kind) {
   const look = { shirt: rng.pick(SHIRTS), shorts: rng.pick(['#1c1f2a', '#474c5c', '#1e4a85', '#2f3340', '#5c1418']), skin: rng.pick(SKINS), hair: rng.pick(HAIRS), shoe: rng.pick(['#f2f1ea', '#1c1f2a', '#d6403a', '#2f68ab']), scale: female ? rng.range(0.9, 0.98) : rng.range(0.97, 1.06) };
@@ -208,7 +231,9 @@ function setupRun() {
     a.rng = makeRng((cfg.seed ^ (k * 2654435761)) >>> 0);
     A.members.push(a);
     if (arch === 'client') {
-      const c = new Agent('pcoach', makeLook(rng, rng() < 0.5, 'pcoach'), `Coach ${rng.pick(FIRST)}`); c.client = a; a.coach = c; c.speed = 1.35;
+      // some coaches are freelancers renting the floor; they wear their own clothes, not the gym's black-and-yellow kit
+      const outside = makeRng((cfg.seed ^ (k * 2246822519) ^ 0x5bd1e995) >>> 0)() < OUTSIDE_SHARE;
+      const c = new Agent('pcoach', makeLook(rng, rng() < 0.5, outside ? 'member' : 'pcoach'), `Coach ${rng.pick(FIRST)}`); c.client = a; a.coach = c; c.speed = 1.35; c.outside = outside;
     }
   }
   A.members.sort((p, q) => p.spawnT - q.spawnT);

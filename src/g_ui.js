@@ -3,12 +3,23 @@
 let actx = null, soundOn = false, noiseBuf = null;
 function ensureAudio() { if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); noiseBuf = actx.createBuffer(1, actx.sampleRate, actx.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; } catch (e) { return; } } if (actx.state === 'suspended') actx.resume().catch(() => {}); }
 function sfx(kind) {
-  if (!soundOn || !actx || S.speed > 10) return;
+  if (!soundOn || !actx || (S.speed > 10 && kind !== 'cash' && kind !== 'jackpot')) return;   // the till rings at any speed
+  if (kind === 'jackpot') {   // a PT sale: the till, then a rising arpeggio
+    sfx('cash');
+    [1047, 1319, 1568, 2093].forEach((f, i) => { const at = actx.currentTime + 0.3 + i * 0.09, o = actx.createOscillator(), gn = actx.createGain(); o.type = 'square'; o.frequency.value = f; gn.gain.setValueAtTime(0.0001, at); gn.gain.exponentialRampToValueAtTime(0.05, at + 0.01); gn.gain.exponentialRampToValueAtTime(0.0001, at + (i === 3 ? 0.6 : 0.15)); o.connect(gn).connect(actx.destination); o.start(at); o.stop(at + 0.65); });
+    return;
+  }
   const t = actx.currentTime;
   const tone = (f0, f1, dur, g, type = 'sine') => { const o = actx.createOscillator(), gn = actx.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur); gn.gain.setValueAtTime(g, t); gn.gain.exponentialRampToValueAtTime(0.0001, t + dur); o.connect(gn).connect(actx.destination); o.start(t); o.stop(t + dur + 0.02); };
   if (kind === 'bell') { tone(1320, 1300, 1.2, 0.18); tone(1980, 1950, 0.8, 0.08); }
   else if (kind === 'drop') { tone(90, 50, 0.25, 0.3); }
   else if (kind === 'clank') { tone(700, 650, 0.15, 0.08, 'square'); }
+  else if (kind === 'cash') {   // cha-ching: a short drawer rattle, then two bright bell strikes
+    const n = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain(); n.buffer = noiseBuf; f.type = 'bandpass'; f.frequency.value = 3200; f.Q.value = 2;
+    g.gain.setValueAtTime(0.12, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09); n.connect(f).connect(g).connect(actx.destination); n.start(t); n.stop(t + 0.1);
+    const bell = (at, f0, g0) => { for (const [m, k] of [[1, 1], [2.76, 0.4], [5.4, 0.15]]) { const o = actx.createOscillator(), gn = actx.createGain(); o.type = 'sine'; o.frequency.value = f0 * m; gn.gain.setValueAtTime(0.0001, at); gn.gain.exponentialRampToValueAtTime(g0 * k, at + 0.005); gn.gain.exponentialRampToValueAtTime(0.0001, at + 0.5); o.connect(gn).connect(actx.destination); o.start(at); o.stop(at + 0.55); } };
+    bell(t + 0.07, 1568, 0.12); bell(t + 0.17, 2093, 0.14);   // G6 then C7
+  }
 }
 // ================================================================ boards
 function drawWhiteboard(k) {
@@ -267,8 +278,8 @@ function updateCard() {
         now = (zh() ? { wait: `等待${ln} · ${Math.round((A.t - e.waitT) / 60)}/${S.patience} 分`, walk: `走向${ln}`, setup: `裝槓片 · ${ln}`, spotwait: '等待保護者', set: `${ln} · 第 ${sn} 組${kg}${rp ? ` · 第 ${rp} 下` : ''}`, rest: `休息中 · 下一組：${ln} 第 ${sn} 組${e.shared ? '（輪流使用）' : ''}`, cardio: `${ln} · 剩 ${Math.max(0, Math.ceil((e.endT - A.t) / 60))} 分`, mat: '伸展中', finish: '卸下槓片' }
           : { wait: `Waiting for ${ln} · ${Math.round((A.t - e.waitT) / 60)}/${S.patience} min`, walk: `Walking to ${ln}`, setup: `Loading · ${ln}`, spotwait: 'Waiting for a spotter', set: `${ln} · set ${sn}${kg}${rp ? ` · rep ${rp}` : ''}`, rest: `Resting · ${ln} set ${sn} next${e.shared ? ' (working in)' : ''}`, cardio: `${ln} · ${Math.max(0, Math.ceil((e.endT - A.t) / 60))} min left`, mat: 'Stretching', finish: 'Stripping the bar' })[e.st] || ln;
       }
-      if (a.kind !== 'member') now = a.kind === 'cleaner' ? tr(a.task ? ({ strip: 'Stripping a loaded bar', db: 'Returning stray dumbbells', wipe: 'Wiping down equipment' })[a.task.kind] : 'On patrol') : a.kind === 'staff' ? tr('Front desk') : a.kind === 'pcoach' ? tx(`Coaching ${a.client.name}`, `指導 ${a.client.name}`) : tr(a.spotFor ? 'Spotting' : 'Coaching the floor');
-      const arch = tr({ power: 'Powerlifter', oly: 'Olympic lifter', body: 'Bodybuilder', beginner: 'Beginner', client: 'Client (with coach)' }[a.arch] || ({ staff: 'Staff', cleaner: 'Cleaner', coach: 'Head coach', pcoach: 'Personal coach' })[a.kind]);
+      if (a.kind !== 'member') now = a.kind === 'cleaner' ? tr(a.task ? ({ strip: 'Stripping a loaded bar', db: 'Returning stray dumbbells', wipe: 'Wiping down equipment' })[a.task.kind] : 'On patrol') : a.kind === 'staff' ? tr('Front desk') : a.kind === 'pcoach' ? (a.outside ? tx(`Coaching ${a.client.name} · renting the floor`, `指導 ${a.client.name} · 場租中`) : tx(`Coaching ${a.client.name}`, `指導 ${a.client.name}`)) : tr(a.spotFor ? 'Spotting' : 'Coaching the floor');
+      const arch = a.kind === 'pcoach' && a.outside ? tx('Outside coach', '外部教練') : a.arch === 'client' && a.coach && a.coach.outside ? tx('Client (outside coach)', '學員（外部教練）') : tr({ power: 'Powerlifter', oly: 'Olympic lifter', body: 'Bodybuilder', beginner: 'Beginner', client: 'Client (with coach)' }[a.arch] || ({ staff: 'Staff', cleaner: 'Cleaner', coach: 'Head coach', pcoach: 'Personal coach' })[a.kind]);
       const prog = a.prog ? '<ol>' + a.prog.map((p, i) => `<li class="${i < a.exI ? 'done' : i === a.exI && a.state === 'ex' ? 'cur' : ''}">${tr(LIFTS[p.lift].name)}${p.kind === 'cardio' || p.kind === 'mat' ? ` ${p.dur}${MIN()}` : ` ${p.sets.length}×${p.sets[p.sets.length - 1].reps}`}</li>`).join('') + '</ol>' : '';
       cardEl.innerHTML = `<h3><span>${trName(a.name)}</span><button id="cardX" aria-label="${tr('Stop following')}">×</button></h3><div style="color:var(--muted)">${arch}${a.arr ? tx(` · arrived ${hhmm(a.arr)}`, ` · ${hhmm(a.arr)} 到場`) : ''}</div><div class="now">${now}</div>${prog}`;
     }

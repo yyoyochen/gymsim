@@ -241,26 +241,46 @@ function tick(raw, now) {
   updatePays();
   render();
 }
-// ================================================================ "+NT$" pops over members as they pay on the way out
-const PAYS = [], _pp = new V3();
+// ================================================================ "+NT$" pops at the gate as members pay on the way out
+const PAYS = [], _payV = new V3();
+let payNext = 0, payDing = 0, payRun = null;
 function updatePays() {
+  const now = performance.now();
+  if (A !== payRun) { payRun = A; for (const p of PAYS) p.el.remove(); PAYS.length = 0; payNext = 0; }   // a new run (Setup) clears pops still waiting from the old one
   if (A && A.payQ && A.payQ.length) {
     const q = A.payQ.splice(0);
-    for (const p of q.slice(-6)) {   // fast-forward can bill dozens at once; show only the latest few
-      const el = document.createElement('div'); el.className = 'pay';
-      el.innerHTML = `+NT$${p.fee}<small>${p.min} min</small>`;
+    // fast-forward can bill dozens at once: show the latest few floor fees, and every PT sale
+    const last = (f, n) => q.filter(f).slice(-n);
+    const show = [...last(p => !p.pt && !p.rent, 3), ...last(p => p.rent, 2), ...last(p => p.pt, 3)];   // after a fast-forward: a few of each kind, PT sales last
+    for (const p of show) {
+      // colour: green = money in (fee, rent), yellow = capped visit, gold = PT sale (gold is reserved for it)
+      const crit = !p.pt && !p.rent && p.fee >= PRICE.cap;   // hit the per-visit cap: the "critical hit"
+      const el = document.createElement('div'); el.className = 'pay' + (p.pt ? ' pt' : p.rent ? ' rent' : crit ? ' crit' : ''); el.style.opacity = 0;
+      el.innerHTML = `+$${p.fee.toLocaleString('en-US')}${p.pt ? `<small>PT ×${p.pt.n}${p.pt.inst ? ' · ' + p.pt.inst : ''}!</small>` : p.rent ? '<small>RENT</small>' : crit ? '<small>MAX!</small>' : ''}`;
       document.body.appendChild(el);
-      PAYS.push({ el, a: p.a, born: performance.now(), x: p.a.pos.x, z: p.a.pos.z });
+      payNext = Math.max(now, payNext + (p.pt ? 700 : 450));
+      const side = Math.random() < 0.5 ? -1 : 1;
+      PAYS.push({ el, born: payNext, pt: !!p.pt, vx: side * (p.pt ? 6 : 14 + Math.random() * 22), size: p.pt ? 2.1 : 0.8 + Math.min(1, p.fee / PRICE.cap) * 0.6 + (crit ? 0.25 : 0), rung: false });
     }
   }
-  const r = canvas.getBoundingClientRect(), now = performance.now();
+  const r = canvas.getBoundingClientRect();
+  _payV.set(DOOR.x, 2.6, HZ).project(cam);   // the gate: numbers burst from here, they don't follow the member
+  const gx = r.left + (_payV.x + 1) / 2 * r.width, gy = r.top + (1 - _payV.y) / 2 * r.height;
   for (let i = PAYS.length - 1; i >= 0; i--) {
-    const p = PAYS[i], age = (now - p.born) / 1600;
-    if (age >= 1) { p.el.remove(); PAYS.splice(i, 1); continue; }
-    if (p.a.visible) { p.x = p.a.pos.x; p.z = p.a.pos.z; }
-    _pp.set(p.x, 2.3, p.z).project(cam);
-    p.el.style.transform = `translate(${r.left + (_pp.x + 1) / 2 * r.width}px, ${r.top + (1 - _pp.y) / 2 * r.height - age * 34}px) translate(-50%, -100%)`;
-    p.el.style.opacity = age < 0.7 ? 1 : (1 - age) / 0.3;
+    const p = PAYS[i], ms = now - p.born, k = ms / (p.pt ? 2600 : 1300);
+    if (k < 0) continue;
+    if (k >= 1) { p.el.remove(); PAYS.splice(i, 1); continue; }
+    if (!p.rung) { p.rung = true; if (p.pt) sfx('jackpot'); else if (now - payDing > 120) { payDing = now; sfx('cash'); } }
+    // RPG damage number: punch in big, settle, hop up on an arc, drift sideways, fade at the end
+    const s = ms / 1000, punch = ms < 90 ? 0.3 + ms / 90 * 1.4 : ms < 220 ? 1.7 - (ms - 90) / 130 * 0.7 : 1;
+    let y = -(150 * s - 170 * s * s) - 18 * s, x = p.vx * s;   // fast hop that slows near its peak, then sinks a little
+    if (p.pt) {   // the PT sale: a bigger, slower rise that hangs in the air and shakes like a level-up
+      y = -70 * (1 - Math.exp(-s * 3.2));
+      if (ms > 120 && ms < 900) { x += Math.sin(ms / 22) * 3 * (1 - ms / 900); y += Math.cos(ms / 17) * 2 * (1 - ms / 900); }
+      p.el.style.filter = `brightness(${(1.1 + 0.25 * Math.sin(ms / 70)).toFixed(2)})`;   // gold glints
+    }
+    p.el.style.transform = `translate(${gx + x}px, ${gy + y}px) translate(-50%, -100%) scale(${(punch * p.size).toFixed(3)})`;
+    p.el.style.opacity = k < 0.7 ? 1 : (1 - k) / 0.3;
   }
 }
 const _lv = new V3(); function _lookOf(s) { return _lv.set(s.x, 1.2, s.z); }
