@@ -1,4 +1,4 @@
-# gymsim
+# GYMSIM
 
 A pixel-art isometric strength-gym simulation built as an agent-based model. Change the layout, mix the member types, and simulate a day of use. Tap anyone to follow their workout.
 
