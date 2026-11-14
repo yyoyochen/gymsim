@@ -2,7 +2,7 @@
 
 A pixel-art isometric strength-gym simulation built as an agent-based model. Change the layout, mix the member types, and simulate a day of use. Tap anyone to follow their workout.
 
-**Play it in your browser: https://yyoyochen.github.io/gymsim/**
+**Play it in your browser: https://yyoyochen.github.io/gym-sim/**
 
 Works on desktop and phones. Use the **En / 中文** button to switch between English and Traditional Chinese.
 
